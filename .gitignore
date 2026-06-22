@@ -1,0 +1,16 @@
+*.iml
+.gradle
+/local.properties
+/.idea/*
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Secrets
+secrets.properties
+
+# Big binary models (téléchargés via INSTALLATION.md)
+app/src/main/assets/*.tflite

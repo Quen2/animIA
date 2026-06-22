@@ -1,0 +1,49 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    <!-- Corps (vert foncé) -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M100,30c-22,0 -40,18 -40,40c0,12 5,22 13,29l-15,40c-2,5 1,11 6,12l8,2c5,1 10,-2 11,-7l8,-22c3,1 6,1 9,1c3,0 6,0 9,-1l8,22c2,5 7,8 12,7l7,-2c5,-1 8,-7 6,-12l-15,-40c8,-7 13,-17 13,-29c0,-22 -18,-40 -40,-40z" />
+    <!-- Rayures du corps -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M70,110l8,4l-5,16l-8,-4z" />
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M122,110l8,4l-5,16l-8,-4z" />
+    <!-- Lunettes - cercles -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M82,70m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M118,70m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+    <!-- Bordures lunettes -->
+    <path
+        android:strokeColor="#1B1B1B"
+        android:strokeWidth="3"
+        android:pathData="M82,70m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+    <path
+        android:strokeColor="#1B1B1B"
+        android:strokeWidth="3"
+        android:pathData="M118,70m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+    <!-- Pont des lunettes -->
+    <path
+        android:strokeColor="#1B1B1B"
+        android:strokeWidth="3"
+        android:pathData="M94,70 L106,70" />
+    <!-- Pupilles -->
+    <path
+        android:fillColor="#1B1B1B"
+        android:pathData="M82,70m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#1B1B1B"
+        android:pathData="M118,70m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <!-- Bouche / langue -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M95,90 L105,90 L102,98 L98,98 Z" />
+</vector>

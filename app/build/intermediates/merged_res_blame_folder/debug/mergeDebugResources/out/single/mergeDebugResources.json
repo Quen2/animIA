@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.animia.mvp.app-debug-54:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.animia.mvp.app-debug-54:/drawable_mascot.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/drawable/mascot.xml"
+    },
+    {
+        "merged": "com.animia.mvp.app-debug-54:/xml_data_extraction_rules.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.animia.mvp.app-debug-54:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.animia.mvp.app-debug-54:/xml_backup_rules.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.animia.mvp.app-debug-54:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.animia.mvp.app-main-56:/mipmap-anydpi-v26/ic_launcher.xml"
+    }
+]

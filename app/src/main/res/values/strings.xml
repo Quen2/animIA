@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">AnimIA</string>
+    <string name="hint_message">Pose une question sur un animal…</string>
+    <string name="action_send">Envoyer</string>
+    <string name="action_camera">Photographier un animal</string>
+    <string name="action_voice">Reconnaissance vocale</string>
+    <string name="action_voice_stop">Arrêter</string>
+    <string name="permission_camera_rationale">L\'app a besoin de la caméra pour identifier un animal.</string>
+    <string name="permission_mic_rationale">L\'app a besoin du micro pour la reconnaissance vocale.</string>
+    <string name="thinking">L\'IA réfléchit…</string>
+    <string name="listening">Écoute en cours…</string>
+    <string name="classifying">Identification en cours…</string>
+    <string name="searching_articles">Recherche d\'articles scientifiques…</string>
+    <string name="articles_section">Articles scientifiques</string>
+    <string name="no_articles_found">Aucun article scientifique trouvé.</string>
+    <string name="error_generic">Une erreur est survenue : %1$s</string>
+    <string name="error_no_api_key">Clé Groq manquante. Voir INSTALLATION.md.</string>
+    <string name="error_no_model">Modèle d\'identification manquant. Voir INSTALLATION.md.</string>
+</resources>
