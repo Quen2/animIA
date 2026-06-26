@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.okhttp.logging)
 
     implementation(libs.mediapipe.tasks.vision)
+    implementation(libs.mediapipe.tasks.audio)
 
     implementation(libs.accompanist.permissions)
     implementation(libs.coil.compose)

@@ -1,13 +1,18 @@
 *.iml
 .gradle
+.kotlin
 /local.properties
 /.idea/*
 .DS_Store
 /build
+app/build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# APK (trop lourds pour GitHub, > 100 Mo)
+*.apk
 
 # Secrets
 secrets.properties

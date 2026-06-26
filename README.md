@@ -7,6 +7,7 @@ Application Android (Kotlin) — "Shazam des animaux" : prends un animal en phot
 - **UI** : Kotlin + Jetpack Compose (Material 3)
 - **Vision (local, gratuit)** : MediaPipe Tasks ImageClassifier — 4 modèles TFLite exécutés en parallèle (AIY Birds/Insects/Plants + EfficientNet ImageNet généraliste), on garde la prédiction au meilleur score
 - **Voix (local, gratuit)** : Android `SpeechRecognizer` natif (fr-FR)
+- **Cris d'animaux (local, gratuit)** : MediaPipe Tasks AudioClassifier — modèle YAMNet (`yamnet.tflite`, 521 classes AudioSet), enregistre ~4 s au micro et identifie l'animal à son cri (chien, chat, oiseau, grenouille, vache…)
 - **Chat IA** : Groq API (Llama 3.3 70B, tier gratuit)
 - **Articles scientifiques** : PubMed E-utilities (gratuit, sans clé)
 - **Caméra** : `ActivityResultContracts.TakePicturePreview`

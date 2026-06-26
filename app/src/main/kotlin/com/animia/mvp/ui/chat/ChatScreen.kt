@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Public
@@ -139,7 +140,15 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                             micPermission.launchPermissionRequest()
                         }
                     },
-                    isListening = state.status == Status.LISTENING
+                    isListening = state.status == Status.LISTENING,
+                    onSoundRecord = {
+                        if (micPermission.status.isGranted) {
+                            viewModel.recordAnimalSound()
+                        } else {
+                            micPermission.launchPermissionRequest()
+                        }
+                    },
+                    isRecording = state.status == Status.RECORDING
                 )
                 BottomNav(onReset = viewModel::resetConversation)
             }
@@ -330,7 +339,9 @@ private fun InputBar(
     onSend: (String) -> Unit,
     onCamera: () -> Unit,
     onVoiceToggle: () -> Unit,
-    isListening: Boolean
+    isListening: Boolean,
+    onSoundRecord: () -> Unit,
+    isRecording: Boolean
 ) {
     var text by remember { mutableStateOf("") }
     Row(
@@ -349,6 +360,20 @@ private fun InputBar(
                 .background(Color.White)
         ) {
             Icon(Icons.Filled.CameraAlt, contentDescription = "Photo", tint = GreenPrimary)
+        }
+        IconButton(
+            onClick = onSoundRecord,
+            enabled = !isRecording,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(if (isRecording) GreenAccent else Color.White)
+        ) {
+            Icon(
+                Icons.Filled.Pets,
+                contentDescription = "Reconnaître un cri d'animal",
+                tint = if (isRecording) Color.White else GreenPrimary
+            )
         }
         TextField(
             value = text,

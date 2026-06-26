@@ -25,6 +25,7 @@ fun StatusIndicator(status: Status, modifier: Modifier = Modifier) {
         Status.SEARCHING -> "Recherche d'articles…"
         Status.THINKING -> "L'IA réfléchit…"
         Status.LISTENING -> "Écoute en cours…"
+        Status.RECORDING -> "J'écoute le cri de l'animal…"
         Status.IDLE -> return
     }
     Row(

@@ -70,6 +70,13 @@ EfficientNet Lite 0 entraîné sur ImageNet — couvre ~120 mammifères par race
 1. https://storage.googleapis.com/mediapipe-models/image_classifier/efficientnet_lite0/float32/1/efficientnet_lite0.tflite
 2. Renomme en `animal_classifier_generic.tflite`.
 
+### E. Cris d'animaux — `yamnet.tflite` (~4 MB, reconnaissance des sons)
+
+Modèle YAMNet (MediaPipe AudioClassifier) qui identifie l'animal à son **cri** enregistré au micro (chien, chat, oiseau, grenouille, vache…).
+
+1. https://storage.googleapis.com/mediapipe-models/audio_classifier/yamnet/float32/1/yamnet.tflite
+2. Garde le nom `yamnet.tflite` (ne pas renommer).
+
 ### Vérification
 
 Ton dossier `app/src/main/assets/` doit contenir :
@@ -79,6 +86,7 @@ animal_classifier_birds.tflite
 animal_classifier_insects.tflite
 animal_classifier_plants.tflite
 animal_classifier_generic.tflite
+yamnet.tflite
 ```
 
 > 💡 Si tu n'as qu'un ou deux modèles, l'app fonctionne quand même — elle utilise ce qui est disponible. Mais la précision sera limitée aux règnes que tu as inclus.

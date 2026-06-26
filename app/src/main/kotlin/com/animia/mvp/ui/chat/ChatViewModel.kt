@@ -10,6 +10,7 @@ import com.animia.mvp.data.groq.GroqClient
 import com.animia.mvp.data.groq.GroqMessage
 import com.animia.mvp.data.pubmed.PubMedArticle
 import com.animia.mvp.data.wikipedia.WikipediaClient
+import com.animia.mvp.audio.AnimalSoundClassifier
 import com.animia.mvp.ml.AnimalClassifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     private val idGenerator = AtomicLong(0)
 
     private var classifier: AnimalClassifier? = null
+    private var soundClassifier: AnimalSoundClassifier? = null
     private var lastAbstractsBlob: String = ""
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -179,6 +181,56 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         sendUserText(text)
     }
 
+    /**
+     * Enregistre ~4 s de son au micro et tente d'identifier l'animal à son cri.
+     * La permission RECORD_AUDIO doit déjà être accordée par l'UI.
+     */
+    fun recordAnimalSound() {
+        if (_state.value.status == Status.RECORDING) return
+        viewModelScope.launch {
+            try {
+                val sound = ensureSoundClassifier()
+                if (sound == null || !sound.isAvailable) {
+                    _state.update {
+                        it.copy(
+                            status = Status.IDLE,
+                            error = "Modèle de sons (yamnet.tflite) absent de assets/."
+                        )
+                    }
+                    return@launch
+                }
+                _state.update { it.copy(status = Status.RECORDING, error = null) }
+                val guess = sound.recordAndIdentify()
+                if (guess == null) {
+                    _state.update {
+                        it.copy(
+                            status = Status.IDLE,
+                            error = "Je n'ai pas reconnu de cri d'animal. Réessaie plus près du son."
+                        )
+                    }
+                    return@launch
+                }
+
+                _state.update {
+                    it.copy(
+                        currentAnimal = guess.displayName,
+                        currentScientificName = null,
+                        status = Status.SEARCHING
+                    )
+                }
+                loadArticlesAndImage(scientific = null, common = guess.searchName)
+
+                val intro = "J'ai entendu un cri qui ressemble à : ${guess.displayName}. Peux-tu m'en parler ?"
+                appendMessage(ChatRole.USER, intro)
+                runChat()
+            } catch (t: Throwable) {
+                _state.update {
+                    it.copy(status = Status.IDLE, error = t.message ?: "Erreur lors de l'écoute.")
+                }
+            }
+        }
+    }
+
     fun setListening(listening: Boolean) {
         _state.update {
             it.copy(
@@ -310,9 +362,19 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             .also { classifier = it }
     }
 
+    private fun ensureSoundClassifier(): AnimalSoundClassifier? {
+        if (soundClassifier != null) return soundClassifier
+        return runCatching { AnimalSoundClassifier(getApplication()) }
+            .onFailure { soundClassifier = null }
+            .getOrNull()
+            .also { soundClassifier = it }
+    }
+
     override fun onCleared() {
         classifier?.close()
         classifier = null
+        soundClassifier?.close()
+        soundClassifier = null
         super.onCleared()
     }
 }

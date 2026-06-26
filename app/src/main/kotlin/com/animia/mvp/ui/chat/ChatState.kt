@@ -11,7 +11,7 @@ data class ChatMessage(
     val expandedContent: String? = null
 )
 
-enum class Status { IDLE, CLASSIFYING, SEARCHING, THINKING, LISTENING }
+enum class Status { IDLE, CLASSIFYING, SEARCHING, THINKING, LISTENING, RECORDING }
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
