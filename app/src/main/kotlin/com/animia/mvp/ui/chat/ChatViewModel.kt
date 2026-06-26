@@ -2,6 +2,7 @@ package com.animia.mvp.ui.chat
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.animia.mvp.data.AnimIARepository
@@ -12,6 +13,9 @@ import com.animia.mvp.data.pubmed.PubMedArticle
 import com.animia.mvp.data.wikipedia.WikipediaClient
 import com.animia.mvp.audio.AnimalSoundClassifier
 import com.animia.mvp.ml.AnimalClassifier
+import com.animia.mvp.ml.ImageLoader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -130,51 +134,94 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         return Regex("""\b[A-Z][a-z]{2,}\s+[a-z]{3,}\b""").find(text)?.value
     }
 
-    fun onImageCaptured(bitmap: Bitmap) {
+    /**
+     * Décode l'image (caméra pleine résolution ou galerie) hors du thread principal,
+     * puis identifie l'animal.
+     */
+    fun onImagePicked(uri: Uri) {
         viewModelScope.launch {
-            try {
-                _state.update { it.copy(status = Status.CLASSIFYING, error = null) }
-                val classifier = ensureClassifier()
-                if (classifier == null || !classifier.hasModels) {
-                    _state.update {
-                        it.copy(
-                            status = Status.IDLE,
-                            error = "Aucun modèle d'identification trouvé dans assets/. Voir INSTALLATION.md."
-                        )
-                    }
-                    return@launch
-                }
-                val top = classifier.classify(bitmap)
-                if (top == null) {
-                    _state.update {
-                        it.copy(status = Status.IDLE, error = "Aucun animal détecté sur la photo.")
-                    }
-                    return@launch
-                }
-                val displayName = top.label
+            _state.update { it.copy(status = Status.CLASSIFYING, error = null) }
+            val bitmap = withContext(Dispatchers.IO) { ImageLoader.load(getApplication(), uri) }
+            if (bitmap == null) {
                 _state.update {
-                    it.copy(
-                        currentAnimal = displayName,
-                        currentScientificName = top.scientificName,
-                        status = Status.SEARCHING
-                    )
+                    it.copy(status = Status.IDLE, error = "Impossible de lire l'image.")
                 }
+                return@launch
+            }
+            identifyAndProceed(bitmap)
+        }
+    }
 
-                loadArticlesAndImage(scientific = top.scientificName, common = displayName)
+    /** Compat : capture directe d'un bitmap. */
+    fun onImageCaptured(bitmap: Bitmap) {
+        viewModelScope.launch { identifyAndProceed(bitmap) }
+    }
 
-                val intro = buildString {
-                    append("J'ai pris en photo : $displayName")
-                    top.scientificName?.let { append(" (*$it*)") }
-                    append(". Peux-tu m'en parler ?")
-                }
-                appendMessage(ChatRole.USER, intro)
-                runChat()
-            } catch (t: Throwable) {
-                _state.update {
-                    it.copy(status = Status.IDLE, error = t.message ?: "Erreur inattendue.")
-                }
+    /**
+     * Identifie l'animal d'une photo :
+     * 1. Modèle de vision Groq (primaire) — fiable, gère basse résolution + toutes espèces.
+     * 2. Repli sur les modèles TFLite locaux si pas de réseau / échec vision.
+     */
+    private suspend fun identifyAndProceed(bitmap: Bitmap) {
+        try {
+            _state.update { it.copy(status = Status.CLASSIFYING, error = null) }
+
+            // 1) Vision Groq (primaire)
+            val vision = if (GroqClient.isApiKeyConfigured()) {
+                runCatching {
+                    val b64 = withContext(Dispatchers.Default) { ImageLoader.toBase64Jpeg(bitmap) }
+                    repository.identifyAnimalFromImage(b64)
+                }.getOrNull()
+            } else null
+
+            if (vision != null && vision.confidence >= VISION_MIN_CONFIDENCE) {
+                proceedWithAnimal(vision.common ?: vision.scientific ?: "Animal", vision.scientific)
+                return
+            }
+
+            // 2) Repli : modèles TFLite locaux
+            val classifier = ensureClassifier()
+            val local = if (classifier != null && classifier.hasModels) {
+                runCatching { classifier.classify(bitmap) }.getOrNull()
+            } else null
+            if (local != null) {
+                proceedWithAnimal(local.label, local.scientificName)
+                return
+            }
+
+            // 3) Vision peu sûre mais existante → on l'utilise quand même en dernier recours
+            if (vision?.common != null || vision?.scientific != null) {
+                proceedWithAnimal(vision.common ?: vision.scientific!!, vision.scientific)
+                return
+            }
+
+            _state.update {
+                it.copy(status = Status.IDLE, error = "Aucun animal détecté sur la photo.")
+            }
+        } catch (t: Throwable) {
+            _state.update {
+                it.copy(status = Status.IDLE, error = t.message ?: "Erreur inattendue.")
             }
         }
+    }
+
+    /** Étapes communes une fois l'animal identifié : articles + image + description. */
+    private suspend fun proceedWithAnimal(displayName: String, scientificName: String?) {
+        _state.update {
+            it.copy(
+                currentAnimal = displayName,
+                currentScientificName = scientificName,
+                status = Status.SEARCHING
+            )
+        }
+        loadArticlesAndImage(scientific = scientificName, common = displayName)
+        val intro = buildString {
+            append("J'ai pris en photo : $displayName")
+            scientificName?.let { append(" (*$it*)") }
+            append(". Peux-tu m'en parler ?")
+        }
+        appendMessage(ChatRole.USER, intro)
+        runChat()
     }
 
     fun onVoiceTranscript(text: String) {
@@ -376,5 +423,11 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         soundClassifier?.close()
         soundClassifier = null
         super.onCleared()
+    }
+
+    private companion object {
+        // Confiance minimale (0-100) du modèle de vision pour accepter son identification
+        // sans passer par le repli local.
+        const val VISION_MIN_CONFIDENCE = 30
     }
 }

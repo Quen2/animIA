@@ -2,9 +2,20 @@ package com.animia.mvp.data
 
 import com.animia.mvp.data.groq.GroqChatRequest
 import com.animia.mvp.data.groq.GroqClient
+import com.animia.mvp.data.groq.GroqContentPart
+import com.animia.mvp.data.groq.GroqImageUrl
 import com.animia.mvp.data.groq.GroqMessage
+import com.animia.mvp.data.groq.GroqVisionMessage
+import com.animia.mvp.data.groq.GroqVisionRequest
 import com.animia.mvp.data.pubmed.PubMedArticle
 import com.animia.mvp.data.pubmed.PubMedClient
+
+/** Résultat d'identification d'un animal par le modèle de vision. */
+data class VisionAnimal(
+    val common: String?,
+    val scientific: String?,
+    val confidence: Int
+)
 
 class AnimIARepository {
 
@@ -65,6 +76,56 @@ class AnimIARepository {
             art.copy(abstractText = abstracts.getOrNull(idx))
         }
         return merged to abstractsBlob
+    }
+
+    /**
+     * Identifie l'animal directement à partir de la photo via le modèle de vision Groq.
+     * Bien plus fiable que les modèles TFLite locaux (gère basse résolution, toutes espèces).
+     * @param base64Jpeg image JPEG encodée en base64 (sans le préfixe data:)
+     * @return l'animal identifié, ou null si aucun animal / erreur réseau.
+     */
+    suspend fun identifyAnimalFromImage(base64Jpeg: String): VisionAnimal? {
+        val prompt = """
+            Tu es un zoologiste expert en identification d'animaux à partir de photos.
+            Identifie l'animal principal sur l'image, même si la photo est de mauvaise qualité.
+            Réponds STRICTEMENT dans ce format, sans aucun autre texte :
+            COMMON: <nom commun en français, ou N/A si aucun animal visible>
+            SCIENTIFIC: <nom scientifique latin "Genus species", ou N/A si incertain>
+            CONFIDENCE: <entier de 0 à 100 indiquant ta certitude>
+        """.trimIndent()
+
+        val request = GroqVisionRequest(
+            model = GroqClient.VISION_MODEL,
+            messages = listOf(
+                GroqVisionMessage(
+                    role = "user",
+                    content = listOf(
+                        GroqContentPart(type = "text", text = prompt),
+                        GroqContentPart(
+                            type = "image_url",
+                            imageUrl = GroqImageUrl("data:image/jpeg;base64,$base64Jpeg")
+                        )
+                    )
+                )
+            )
+        )
+
+        val text = groq.chatCompletionsVision(
+            authorization = GroqClient.authHeader(),
+            request = request
+        ).choices.firstOrNull()?.message?.content?.trim().orEmpty()
+
+        fun field(key: String): String? = Regex("$key:\\s*(.+)", RegexOption.IGNORE_CASE)
+            .find(text)?.groupValues?.get(1)?.trim()
+            ?.takeIf { it.isNotBlank() && !it.equals("N/A", ignoreCase = true) }
+
+        val common = field("COMMON")
+        val scientific = field("SCIENTIFIC")
+        val confidence = Regex("CONFIDENCE:\\s*(\\d+)", RegexOption.IGNORE_CASE)
+            .find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+        if (common == null && scientific == null) return null
+        return VisionAnimal(common = common, scientific = scientific, confidence = confidence)
     }
 
     /** Appelle Groq avec l'historique de conversation. */

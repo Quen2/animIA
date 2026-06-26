@@ -26,8 +26,8 @@ data class AnimalGuess(
  */
 class AnimalClassifier(
     context: Context,
-    maxResults: Int = 3,
-    scoreThreshold: Float = 0.05f
+    maxResults: Int = 5,
+    scoreThreshold: Float = 0.0f
 ) : AutoCloseable {
 
     private data class Loaded(val name: String, val classifier: ImageClassifier)
@@ -58,18 +58,22 @@ class AnimalClassifier(
         if (loaded.isEmpty()) return@coroutineScope null
         loaded.map { entry ->
             async(Dispatchers.Default) { runOne(entry, bitmap) }
-        }.awaitAll().filterNotNull().maxByOrNull { it.confidence }
+        }.awaitAll().filterNotNull()
+            .maxByOrNull { it.confidence }
+            ?.takeIf { it.confidence >= MIN_ACCEPT_CONFIDENCE }
     }
 
     private fun runOne(entry: Loaded, bitmap: Bitmap): AnimalGuess? {
         return runCatching {
             val mpImage = BitmapImageBuilder(bitmap).build()
             val result = entry.classifier.classify(mpImage)
-            val categories = result.classificationResult().classifications()
-                .firstOrNull()?.categories().orEmpty()
-            // Les modèles AIY ont une classe "background" (indice 0) qui sort en tête
-            // quand l'animal n'appartient pas à leur domaine : on l'ignore.
-            val top = categories.firstOrNull { !isIgnoredLabel(it.categoryName()) } ?: return null
+            // Catégories triées par score décroissant : la 1re est la vraie prédiction.
+            val top = result.classificationResult().classifications()
+                .firstOrNull()?.categories()?.firstOrNull() ?: return null
+            // Si le modèle prédit "background" en tête, c'est qu'il considère que le sujet
+            // n'est PAS de son domaine : il s'abstient (on ne descend pas sur sa 2e proposition,
+            // qui serait du bruit → cause des "mauvais animaux").
+            if (isIgnoredLabel(top.categoryName())) return null
             val raw = top.categoryName()
             val (common, scientific) = parseLabel(raw)
             AnimalGuess(
@@ -89,6 +93,9 @@ class AnimalClassifier(
 
     companion object {
         private const val TAG = "AnimalClassifier"
+
+        // En dessous de ce score, on considère qu'aucun animal n'est identifié de façon fiable.
+        private const val MIN_ACCEPT_CONFIDENCE = 0.15f
 
         // Labels non exploitables renvoyés par les modèles (classe "vide" / fond).
         private val IGNORED_LABELS = setOf("background", "", "none", "unknown")

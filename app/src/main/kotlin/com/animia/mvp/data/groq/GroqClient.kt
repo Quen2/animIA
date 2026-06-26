@@ -13,6 +13,8 @@ object GroqClient {
 
     private const val BASE_URL = "https://api.groq.com/"
     const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
+    // Modèle multimodal (vision) — identifie l'animal directement depuis la photo.
+    const val VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
     private val json = Json {
         ignoreUnknownKeys = true

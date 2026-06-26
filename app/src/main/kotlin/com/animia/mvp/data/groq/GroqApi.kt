@@ -10,4 +10,10 @@ interface GroqApi {
         @Header("Authorization") authorization: String,
         @Body request: GroqChatRequest
     ): GroqChatResponse
+
+    @POST("openai/v1/chat/completions")
+    suspend fun chatCompletionsVision(
+        @Header("Authorization") authorization: String,
+        @Body request: GroqVisionRequest
+    ): GroqChatResponse
 }

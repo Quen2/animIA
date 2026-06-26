@@ -1,9 +1,11 @@
 package com.animia.mvp.ui.chat
 
 import android.Manifest
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pets
@@ -91,10 +94,19 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     val micPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
 
+    // URI temporaire où la caméra écrit la photo pleine résolution
+    var pendingPhotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
     val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) viewModel.onImageCaptured(bitmap)
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) pendingPhotoUri?.let { viewModel.onImagePicked(it) }
+    }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: android.net.Uri? ->
+        if (uri != null) viewModel.onImagePicked(uri)
     }
 
     val speechHelper = remember {
@@ -126,10 +138,17 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
                     onSend = viewModel::sendUserText,
                     onCamera = {
                         if (cameraPermission.status.isGranted) {
-                            takePictureLauncher.launch(null)
+                            val uri = createImageUri(context)
+                            pendingPhotoUri = uri
+                            takePictureLauncher.launch(uri)
                         } else {
                             cameraPermission.launchPermissionRequest()
                         }
+                    },
+                    onGallery = {
+                        pickImageLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
                     },
                     onVoiceToggle = {
                         if (state.status == Status.LISTENING) {
@@ -164,6 +183,12 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
             HomeContent(padding = padding, status = state.status)
         }
     }
+}
+
+/** Crée une URI FileProvider dans le cache où la caméra écrira la photo pleine résolution. */
+private fun createImageUri(context: android.content.Context): android.net.Uri {
+    val file = File.createTempFile("capture_", ".jpg", context.cacheDir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 }
 
 @Composable
@@ -338,6 +363,7 @@ private fun ConversationContent(
 private fun InputBar(
     onSend: (String) -> Unit,
     onCamera: () -> Unit,
+    onGallery: () -> Unit,
     onVoiceToggle: () -> Unit,
     isListening: Boolean,
     onSoundRecord: () -> Unit,
@@ -360,6 +386,15 @@ private fun InputBar(
                 .background(Color.White)
         ) {
             Icon(Icons.Filled.CameraAlt, contentDescription = "Photo", tint = GreenPrimary)
+        }
+        IconButton(
+            onClick = onGallery,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+        ) {
+            Icon(Icons.Filled.Image, contentDescription = "Galerie", tint = GreenPrimary)
         }
         IconButton(
             onClick = onSoundRecord,
