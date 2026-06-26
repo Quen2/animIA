@@ -65,8 +65,11 @@ class AnimalClassifier(
         return runCatching {
             val mpImage = BitmapImageBuilder(bitmap).build()
             val result = entry.classifier.classify(mpImage)
-            val top = result.classificationResult().classifications()
-                .firstOrNull()?.categories()?.firstOrNull() ?: return null
+            val categories = result.classificationResult().classifications()
+                .firstOrNull()?.categories().orEmpty()
+            // Les modèles AIY ont une classe "background" (indice 0) qui sort en tête
+            // quand l'animal n'appartient pas à leur domaine : on l'ignore.
+            val top = categories.firstOrNull { !isIgnoredLabel(it.categoryName()) } ?: return null
             val raw = top.categoryName()
             val (common, scientific) = parseLabel(raw)
             AnimalGuess(
@@ -86,6 +89,12 @@ class AnimalClassifier(
 
     companion object {
         private const val TAG = "AnimalClassifier"
+
+        // Labels non exploitables renvoyés par les modèles (classe "vide" / fond).
+        private val IGNORED_LABELS = setOf("background", "", "none", "unknown")
+
+        private fun isIgnoredLabel(name: String?): Boolean =
+            name == null || name.trim().lowercase() in IGNORED_LABELS
 
         private fun assetExists(assets: AssetManager, name: String): Boolean = runCatching {
             assets.openFd(name).close(); true
